@@ -1,2 +1,2 @@
 # graphs-1
- graf vizuelizacija
+	Vizuelizacija grafova
