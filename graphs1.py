@@ -1,4 +1,5 @@
 import random
+import math
 import pygame as pg
 pg.init()
 
@@ -25,8 +26,11 @@ col_yellow = pg.Color("yellow")
 nodeSize = 10
 nodeCol = col_white
 linkCol = col_white
+selectedCol = col_yellow
 
 
+
+#Tona ipo utlity funkcija koje su preostale iz prethodnog projekta pa ih nisam sklonio odavde
 
 def col_random():
 	return (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255), 255)
@@ -50,6 +54,8 @@ def col_lerp(a, b, t):
 	t = clamp(t, 0, 1)
 	return (ilerp(a[0], b[0], t), ilerp(a[1], b[1], t), ilerp(a[2], b[2], t), ilerp(a[3], b[3], t))
 
+def dist(A, B):
+	return math.sqrt(math.fabs(A[0] - B[0])**2 + math.fabs(A[1] - B[1])**2)
 
 
 class Node:
@@ -82,15 +88,31 @@ node1 = graph.append(Node(screenX // 2, screenY // 2))
 node2 = graph.append(Node(screenX // 2, screenY // 2 + 100))
 graph.link(node1, node2)
 
+selectedNodeA = None
+selectedNodeB = None
+
+def selectNode(x, y):
+	for node in graph.nodes:
+		if dist((x, y), node.get_pos()) < nodeSize:
+			return (True, node)
+	return (False, None)
 
 def handleEvent(event):
 	if event.type == pg.MOUSEBUTTONDOWN:
 		if event.button == 1:
-			global node1, node2, graph
-			node1 = node2
-			node2 = graph.append(Node(event.pos[0], event.pos[1]))
-			graph.link(node1, node2)
-		
+			global graph, selectedNodeA
+			selection = selectNode(event.pos[0], event.pos[1])
+			if selection[0]:
+				selectedNodeB = selectedNodeA
+				selectedNodeA = selection[1]
+			else:
+				selectedNodeB = selectedNodeA
+				selectedNodeA = graph.append(Node(event.pos[0], event.pos[1]))
+			
+			if selectedNodeB != None:
+				graph.link(selectedNodeA, selectedNodeB)
+			selectedNodeB = None
+
 
 def update():
 	pass
@@ -117,21 +139,30 @@ def debugDraw():
 
 	textY += textdT.get_height() + spacing
 
+def uiDraw():
+	pass
+
 def draw():
 	mainSurface.lock()
 
 	mainSurface.fill(col_black)
 
-	for node in graph.nodes:
-		pg.draw.circle(mainSurface, nodeCol, node.get_pos(), nodeSize)
-
 	for node in graph.connections:
 		for link in graph.connections[node]:
 			pg.draw.line(mainSurface, linkCol, node.get_pos(), link.get_pos(), 2)
 
+	for node in graph.nodes:
+		col = nodeCol
+		if node == selectedNodeA:
+			col = selectedCol
+		pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize)
+
 	mainSurface.unlock()
 
 	for i in range(0, len(graph.nodes)):
+		col = nodeCol
+		if graph.nodes[i] == selectedNodeA:
+			col = selectedCol
 
 		string = str(i)
 		if len(string) == 2:
@@ -141,12 +172,12 @@ def draw():
 		else:
 			font = pg.font.SysFont("Verdana", int(nodeSize * 1.2 / len(string)), True)
 
-		text = font.render(string, True, col_black, col_white)
+		text = font.render(string, True, col_black, col)
 		textRect = text.get_rect()
 		textRect.center = (graph.nodes[i].get_pos())
 		mainSurface.blit(text, textRect)
 
-	
+	uiDraw()
 	debugDraw()
 
 	pg.display.update()
