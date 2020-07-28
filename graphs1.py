@@ -21,6 +21,13 @@ col_blue = pg.Color("blue")
 col_orange = pg.Color("orange")
 col_yellow = pg.Color("yellow")
 
+
+nodeSize = 10
+nodeCol = col_white
+linkCol = col_white
+
+
+
 def col_random():
 	return (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255), 255)
 
@@ -50,18 +57,39 @@ class Node:
 		self.x = int(x)
 		self.y = int(y)
 
-nodes = []
-nodes.append(Node(screenX // 2, screenY // 2))
+	def get_pos(self):
+		return (self.x, self.y)
 
-nodeSize = 10
-nodeCol = col_white
 
+
+class Graph:
+	def __init__(self):
+		self.nodes = []
+		self.connections = {}
+
+	def append(self, node):
+		self.nodes.append(node)
+		return node
+
+	def link(self, node1, node2):
+		self.connections.setdefault(node1, [])
+		self.connections[node1].append(node2)
+		self.connections.setdefault(node2, [])
+		self.connections[node2].append(node1)
+
+graph = Graph()
+node1 = graph.append(Node(screenX // 2, screenY // 2))
+node2 = graph.append(Node(screenX // 2, screenY // 2 + 100))
+graph.link(node1, node2)
 
 
 def handleEvent(event):
 	if event.type == pg.MOUSEBUTTONDOWN:
 		if event.button == 1:
-			print("click")
+			global node1, node2, graph
+			node1 = node2
+			node2 = graph.append(Node(event.pos[0], event.pos[1]))
+			graph.link(node1, node2)
 		
 
 def update():
@@ -94,18 +122,28 @@ def draw():
 
 	mainSurface.fill(col_black)
 
-	for node in nodes:
-		pg.draw.circle(mainSurface, nodeCol, (node.x, node.y), nodeSize)
+	for node in graph.nodes:
+		pg.draw.circle(mainSurface, nodeCol, node.get_pos(), nodeSize)
+
+	for node in graph.connections:
+		for link in graph.connections[node]:
+			pg.draw.line(mainSurface, linkCol, node.get_pos(), link.get_pos(), 2)
 
 	mainSurface.unlock()
 
-	for i in range(0, len(nodes)):
+	for i in range(0, len(graph.nodes)):
 
-		font = pg.font.SysFont("Verdana", int(nodeSize * 1.2), True)
 		string = str(i)
+		if len(string) == 2:
+			font = pg.font.SysFont("Verdana", int(nodeSize), True)
+		elif len(string) == 3:
+			font = pg.font.SysFont("Verdana", int(nodeSize * 0.7), True)
+		else:
+			font = pg.font.SysFont("Verdana", int(nodeSize * 1.2 / len(string)), True)
+
 		text = font.render(string, True, col_black, col_white)
 		textRect = text.get_rect()
-		textRect.center = (nodes[i].x, nodes[i].y)
+		textRect.center = (graph.nodes[i].get_pos())
 		mainSurface.blit(text, textRect)
 
 	
