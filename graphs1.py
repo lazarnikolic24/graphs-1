@@ -1,4 +1,5 @@
 import random
+import math
 import pygame as pg
 pg.init()
 
@@ -53,6 +54,8 @@ def col_lerp(a, b, t):
 	t = clamp(t, 0, 1)
 	return (ilerp(a[0], b[0], t), ilerp(a[1], b[1], t), ilerp(a[2], b[2], t), ilerp(a[3], b[3], t))
 
+def dist(A, B):
+	return math.sqrt(math.fabs(A[0] - B[0])**2 + math.fabs(A[1] - B[1])**2)
 
 
 class Node:
@@ -85,19 +88,30 @@ node1 = graph.append(Node(screenX // 2, screenY // 2))
 node2 = graph.append(Node(screenX // 2, screenY // 2 + 100))
 graph.link(node1, node2)
 
-selectedNode = None
-cursorMode = "move"
-# Cursor modes:
-# "move"
-# "link"
-# "place"
-# "delete"
+selectedNodeA = None
+selectedNodeB = None
+
+def selectNode(x, y):
+	for node in graph.nodes:
+		if dist((x, y), node.get_pos()) < nodeSize:
+			return (True, node)
+	return (False, None)
 
 def handleEvent(event):
 	if event.type == pg.MOUSEBUTTONDOWN:
 		if event.button == 1:
-			global graph, selectedNode
-			selectedNode = graph.append(Node(event.pos[0], event.pos[1]))
+			global graph, selectedNodeA
+			selection = selectNode(event.pos[0], event.pos[1])
+			if selection[0]:
+				selectedNodeB = selectedNodeA
+				selectedNodeA = selection[1]
+			else:
+				selectedNodeB = selectedNodeA
+				selectedNodeA = graph.append(Node(event.pos[0], event.pos[1]))
+			
+			if selectedNodeB != None:
+				graph.link(selectedNodeA, selectedNodeB)
+			selectedNodeB = None
 
 
 def update():
@@ -139,7 +153,7 @@ def draw():
 
 	for node in graph.nodes:
 		col = nodeCol
-		if node == selectedNode:
+		if node == selectedNodeA:
 			col = selectedCol
 		pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize)
 
@@ -147,7 +161,7 @@ def draw():
 
 	for i in range(0, len(graph.nodes)):
 		col = nodeCol
-		if graph.nodes[i] == selectedNode:
+		if graph.nodes[i] == selectedNodeA:
 			col = selectedCol
 
 		string = str(i)
