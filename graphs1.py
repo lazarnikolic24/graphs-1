@@ -25,8 +25,11 @@ col_yellow = pg.Color("yellow")
 nodeSize = 10
 nodeCol = col_white
 linkCol = col_white
+selectedCol = col_yellow
 
 
+
+#Tona ipo utlity funkcija koje su preostale iz prethodnog projekta pa ih nisam sklonio odavde
 
 def col_random():
 	return (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255), 255)
@@ -82,15 +85,20 @@ node1 = graph.append(Node(screenX // 2, screenY // 2))
 node2 = graph.append(Node(screenX // 2, screenY // 2 + 100))
 graph.link(node1, node2)
 
+selectedNode = None
+cursorMode = "move"
+# Cursor modes:
+# "move"
+# "link"
+# "place"
+# "delete"
 
 def handleEvent(event):
 	if event.type == pg.MOUSEBUTTONDOWN:
 		if event.button == 1:
-			global node1, node2, graph
-			node1 = node2
-			node2 = graph.append(Node(event.pos[0], event.pos[1]))
-			graph.link(node1, node2)
-		
+			global graph, selectedNode
+			selectedNode = graph.append(Node(event.pos[0], event.pos[1]))
+
 
 def update():
 	pass
@@ -117,21 +125,30 @@ def debugDraw():
 
 	textY += textdT.get_height() + spacing
 
+def uiDraw():
+	pass
+
 def draw():
 	mainSurface.lock()
 
 	mainSurface.fill(col_black)
 
-	for node in graph.nodes:
-		pg.draw.circle(mainSurface, nodeCol, node.get_pos(), nodeSize)
-
 	for node in graph.connections:
 		for link in graph.connections[node]:
 			pg.draw.line(mainSurface, linkCol, node.get_pos(), link.get_pos(), 2)
 
+	for node in graph.nodes:
+		col = nodeCol
+		if node == selectedNode:
+			col = selectedCol
+		pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize)
+
 	mainSurface.unlock()
 
 	for i in range(0, len(graph.nodes)):
+		col = nodeCol
+		if graph.nodes[i] == selectedNode:
+			col = selectedCol
 
 		string = str(i)
 		if len(string) == 2:
@@ -141,12 +158,12 @@ def draw():
 		else:
 			font = pg.font.SysFont("Verdana", int(nodeSize * 1.2 / len(string)), True)
 
-		text = font.render(string, True, col_black, col_white)
+		text = font.render(string, True, col_black, col)
 		textRect = text.get_rect()
 		textRect.center = (graph.nodes[i].get_pos())
 		mainSurface.blit(text, textRect)
 
-	
+	uiDraw()
 	debugDraw()
 
 	pg.display.update()
