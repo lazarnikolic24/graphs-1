@@ -21,6 +21,8 @@ col_red = pg.Color("red")
 col_blue = pg.Color("blue")
 col_orange = pg.Color("orange")
 col_yellow = pg.Color("yellow")
+col_gray = pg.Color("gray")
+col_darkyellow = pg.Color("yellow4")
 
 
 nodeSize = 10
@@ -78,29 +80,82 @@ class Graph:
 		return node
 
 	def link(self, node1, node2):
-		self.connections.setdefault(node1, [])
-		self.connections[node1].append(node2)
-		self.connections.setdefault(node2, [])
-		self.connections[node2].append(node1)
+		if node1 != node2:
+			self.connections.setdefault(node1, [])
+			if not node2 in self.connections[node1]:
+				self.connections[node1].append(node2)
+			self.connections.setdefault(node2, [])
+			if not node1 in self.connections[node2]:
+				self.connections[node2].append(node1)
+
+	def remove(self, node):
+		while node in self.nodes:
+			self.nodes.remove(node)
+
+		while node in self.connections:
+			self.connections.pop(node)
+
+		for connection in self.connections:
+			while node in self.connections[connection]:
+				self.connections[connection].remove(node)
+
+	def disconnect(self, nodeA, nodeB):
+		while nodeB in self.connections[nodeA]:
+			self.connections[nodeA].remove(nodeB)
+
+		while nodeA in self.connections[nodeB]:
+			self.connections[nodeB].remove(nodeA)
 
 graph = Graph()
-node1 = graph.append(Node(screenX // 2, screenY // 2))
-node2 = graph.append(Node(screenX // 2, screenY // 2 + 100))
-graph.link(node1, node2)
+#node1 = graph.append(Node(screenX // 2, screenY // 2))
+#node2 = graph.append(Node(screenX // 2, screenY // 2 + 100))
+#graph.link(node1, node2)
 
 selectedNodeA = None
 selectedNodeB = None
 
+dragging = False
+
 def selectNode(x, y):
+	min_dist = screenX * screenY
+	min_node = None
 	for node in graph.nodes:
-		if dist((x, y), node.get_pos()) < nodeSize:
-			return (True, node)
-	return (False, None)
+		distance = dist((x, y), node.get_pos())
+		if  distance < nodeSize + 10 and distance < min_dist:
+			min_dist = distance
+			min_node = node
+
+	if min_node != None:
+		return (True, min_node)
+	else:
+		return (False, None)
+
+# Currently has issues, will be reworked
+def selectConnection(x, y):
+	for nodeA in graph.connections:
+		for nodeB in graph.connections[nodeA]:
+			r = 10
+			d = pg.math.Vector2((nodeB.x - nodeA.x), (nodeB.y - nodeA.y))
+			f = pg.math.Vector2((nodeA.x - x), (nodeA.y - y))
+		
+			a = d.dot(d)
+			b = 2 * f.dot(d)
+			c = f.dot(f) - r * r
+
+			if b * b - 4 * a * c >= 0:
+				return (True, nodeA, nodeB)
+	return (False, None, None)
 
 def handleEvent(event):
-	if event.type == pg.MOUSEBUTTONDOWN:
-		if event.button == 1:
-			global graph, selectedNodeA
+	global graph, selectedNodeA, selectedNodeB, dragging
+
+	if event.type == pg.KEYDOWN:
+		if event.key == pg.K_ESCAPE:
+			selectedNodeA = None
+
+	elif event.type == pg.MOUSEBUTTONDOWN:
+		if event.button == 1 and not dragging:
+			#LEFT CLICK
 			selection = selectNode(event.pos[0], event.pos[1])
 			if selection[0]:
 				selectedNodeB = selectedNodeA
@@ -108,14 +163,46 @@ def handleEvent(event):
 			else:
 				selectedNodeB = selectedNodeA
 				selectedNodeA = graph.append(Node(event.pos[0], event.pos[1]))
-			
+
 			if selectedNodeB != None:
 				graph.link(selectedNodeA, selectedNodeB)
 			selectedNodeB = None
 
+		elif event.button == 3 and not dragging:
+			#RIGHT CLICK
+			selection = selectNode(event.pos[0], event.pos[1])
+			if selection[0]:
+				graph.remove(selection[1])
+			elif selectedNodeA == None and False:
+				# Has issues, will be reworked
+				selection = selectConnection(event.pos[0], event.pos[1])
+				if selection[0]:
+					graph.disconnect(selection[1], selection[2])
+
+			selectedNodeA = None
+			selectedNodeB = None
+
+		elif event.button == 2:
+			#MIDDLE CLICK
+			selection = selectNode(event.pos[0], event.pos[1])
+			if selection[0]:
+				selectedNodeA = selection[1]
+				dragging = True
+
+	elif event.type == pg.MOUSEBUTTONUP:
+		if event.button == 2:
+			#MIDDLE CLICK
+			if dragging:
+				dragging = False
+				selectedNodeA = None
+
 
 def update():
-	pass
+	mouseRel = pg.mouse.get_rel()
+	if dragging:
+		selectedNodeA.x += mouseRel[0]
+		selectedNodeA.y += mouseRel[1]
+
 
 
 def debugDraw():
@@ -151,11 +238,32 @@ def draw():
 		for link in graph.connections[node]:
 			pg.draw.line(mainSurface, linkCol, node.get_pos(), link.get_pos(), 2)
 
+
+	mousePos = pg.mouse.get_pos()
+#	if not dragging and selectedNodeA == None:
+#		closestConnection = selectConnection(mousePos[0], mousePos[1])
+#		if closestConnection[0]:
+#			pg.draw.line(mainSurface, col_darkyellow, closestConnection[1].get_pos(), closestConnection[2].get_pos(), 3)
+
+	if selectedNodeA != None and not dragging:
+		closestNode = selectNode(mousePos[0], mousePos[1])
+		if closestNode[0]:
+			pg.draw.line(mainSurface, col_gray, selectedNodeA.get_pos(), closestNode[1].get_pos(), 2)
+		else:
+			pg.draw.line(mainSurface, col_gray, selectedNodeA.get_pos(), mousePos, 2)
+
+
 	for node in graph.nodes:
 		col = nodeCol
 		if node == selectedNodeA:
 			col = selectedCol
 		pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize)
+
+
+#	if not dragging and selectedNodeA == None:
+#		closestNode = selectNode(mousePos[0], mousePos[1])
+#		if closestNode[0]:
+#			pg.draw.circle(mainSurface, col_darkyellow, closestNode[1].get_pos(), nodeSize + 1)
 
 	mainSurface.unlock()
 
@@ -173,6 +281,7 @@ def draw():
 			font = pg.font.SysFont("Verdana", int(nodeSize * 1.2 / len(string)), True)
 
 		text = font.render(string, True, col_black, col)
+		text.set_colorkey(col)
 		textRect = text.get_rect()
 		textRect.center = (graph.nodes[i].get_pos())
 		mainSurface.blit(text, textRect)
