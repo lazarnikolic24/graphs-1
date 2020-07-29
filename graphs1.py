@@ -202,7 +202,7 @@ def selectConnection(x, y):
 
 
 class uiObject:
-	def __init__(self, x, y, width, height, text, textsize, parent):
+	def __init__(self, x, y, width, height, text, textsize, parent, clickEvent):
 		self.x = x
 		self.y = y
 
@@ -213,6 +213,8 @@ class uiObject:
 		self.textsize = textsize
 
 		self.parent = parent
+
+		self.clickEvent = clickEvent
 
 		self.children = []
 		self.enabled = True
@@ -234,11 +236,17 @@ class uiObject:
 	def get_rect(self, dx = 0, dy = 0, dw = 0, dh = 0):
 		return (self.x + dx, self.y + dy, self.width + dw, self.height + dh)
 
+	def set_rect(self, *rect):
+		self.x = rect[0]
+		self.y = rect[1]
+		self.width = rect[2]
+		self.height = rect[3]
+
 	def onClick(self):
 		pass
 
 	def colTest(self, x, y):
-		if x > self.x and x < self.x + self.width and y > self.y and y < self.y + self.height:
+		if x > self.x - 5 and x < self.x + self.width + 5 and y > self.y - 5 and y < self.y + self.height + 5:
 			return True
 		else: return False
 
@@ -246,11 +254,22 @@ class uiObject:
 		pass
 
 	def destroy(self):
+		for child in self.children:
+			child.destroy()
+
+		del self.children
 		self.parent.childDestroyed(self)
+
+	def clearChildren(self):
+		while len(self.children) > 0:
+			self.children[0].destroy()
+
+		self.children.clear()
 
 class uiManagerClass():
 	def __init__(self, layers):
 		self.layers = []
+		self.text = "uiManager"
 		for i in range(0, layers):
 			self.layers.append([])
 
@@ -280,14 +299,76 @@ class uiManagerClass():
 
 		self.layers[layer].append(object)
 
+		return object
+
 	def childDestroyed(self, child):
 		for layer in self.layers:
 			while child in layer:
 				layer.remove(child)
 
-class uiButton(uiObject):
+class uiPanel(uiObject):
+	def __init__(self, x, y, width, height, text, parent, color):
+		super().__init__(x, y, width, height, text, None, parent, None)
+
+		self.color = color
+
+	def drawSelf(self):
+		pg.draw.rect(mainSurface, col_white, self.get_rect())
+		pg.draw.rect(mainSurface, self.color, self.get_rect(2, 2, -4, -4))
+
+	def encapsulateChildren(self):
+		min_x = screenX
+		min_y = screenY
+		max_x = 0
+		max_y = 0
+
+		for child in self.children:
+			for i in range(0, 2):
+				x = child.x + child.width * i
+				y = child.y + child.height * i
+
+				if x < min_x: min_x = x
+				if x > max_x: max_x = x
+				if y < min_y: min_y = y
+				if y > max_y: max_y = y
+
+		self.x = min_x - 4
+		self.y = min_y - 4
+		self.width = max_x - self.x + 4
+		self.height = max_y - self.y + 4
+
+class uiText(uiObject):
 	def __init__(self, x, y, width, height, text, textsize, parent, color, fitToText = True):
-		super().__init__(x, y, width, height, text, textsize, parent)
+		super().__init__(x, y, width, height, text, textsize, parent, None)
+
+		self.color = color
+		if fitToText:
+			self.fitToText()
+
+	def drawSelf(self):
+		font = pg.font.SysFont("Verdana", self.textsize, True)
+		text = font.render(self.text, True, col_black, self.color)
+		text.set_colorkey(self.color)
+		textRect = text.get_rect()
+		textRect.center = ((self.x + self.width // 2), (self.y + self.height // 2))
+
+		mainSurface.blit(text, textRect)
+
+	def fitToText(self, lockLeft = True, lockTop = True):
+		font = pg.font.SysFont("Verdana", self.textsize, True)
+		textSize = font.size(self.text)
+
+		self.width = textSize[0]
+		if not lockLeft:
+			self.x -= self.width
+
+		self.height = textSize[1]
+		if not lockTop:
+			self.y -= self.height
+
+class uiButton(uiObject):
+	def __init__(self, x, y, width, height, text, textsize, parent, clickEvent, color, fitToText = True):
+		super().__init__(x, y, width, height, text, textsize, parent, clickEvent)
 
 		self.value = False
 		self.color = color
@@ -310,18 +391,27 @@ class uiButton(uiObject):
 
 		mainSurface.blit(text, textRect)
 
-	def fitToText(self):
+	def fitToText(self, lockLeft = True, lockTop = True):
 		font = pg.font.SysFont("Verdana", self.textsize, True)
 		textSize = font.size(self.text)
+
 		self.width = textSize[0] + 20
+		if not lockLeft:
+			self.x -= self.width
+
 		self.height = textSize[1] + 20
+		if not lockTop:
+			self.y -= self.height
 
 	def onClick(self):
-		print("Clicked")
+		if self.clickEvent != None:
+			self.clickEvent(self)
+		else:
+			print("Clicked " + self.text)
 
 class uiToggleButton(uiButton):
-	def __init__(self, x, y, width, height, text, textsize, parent, color, colorB, fitToText = True):
-		super().__init__(x, y, width, height, text, textsize, parent, color, fitToText)
+	def __init__(self, x, y, width, height, text, textsize, parent, clickEvent, color, colorB, fitToText = True):
+		super().__init__(x, y, width, height, text, textsize, parent, clickEvent, color, fitToText)
 
 		self.colorB = colorB
 
@@ -334,14 +424,47 @@ class uiToggleButton(uiButton):
 	def onClick(self):
 		if self.value:
 			self.value = False
-			print("Turned offf")
 		else:
 			self.value = True
-			print("turned on!")
+
+		if self.clickEvent != None:
+			self.clickEvent(self)
+		else:
+			print(self.value)
+
+
 	
+def algorithmsClickEvent(self):
+	if self.value:
+		tempButton = uiButton(self.x, self.y + self.height + 8, 0, 0, "BFS", 18, self, bfsClickEvent, self.colorB, True)
+		self.children.append(tempButton)
+
+		tempButton = uiButton(self.x, tempButton.y + tempButton.height + 8, 0, 0, "DFS", 18, self, None, self.colorB, True)
+		self.children.append(tempButton)
+	else:
+		self.clearChildren()
+
+def bfsClickEvent(self):
+	self.clearChildren()
+
+	tempPanel = uiPanel(100, 100, 100, 100, "panel", self, col_darkerpurp)
+	self.children.append(tempPanel)
+
+	tempText = uiText(tempPanel.x + 4, tempPanel.y + 4, 0, 0, "Start", 15, self, col_darkerpurp, True)
+	tempPanel.children.append(tempText)
+
+	tempText = uiText(tempPanel.x + 4, tempText.y + tempText.height, 0, 0, "Search full graph", 15, self, col_darkerpurp, True)
+	tempPanel.children.append(tempText)
+
+	tempText = uiText(tempPanel.x + 4, tempText.y + tempText.height, 0, 0, "End", 15, self, col_darkerpurp, True)
+	tempPanel.children.append(tempText)
+
+	tempPanel.encapsulateChildren()
+
 
 uiManager = uiManagerClass(3)
-uiManager.create(uiToggleButton(200, 200, 80, 80, "Algorithms", 19, uiManager, col_darkpurp, col_darkerpurp))
+tempButton = uiManager.create(uiToggleButton(screenX - 20, 20, 0, 0, "Algorithms", 19, uiManager, algorithmsClickEvent, col_darkpurp, col_darkerpurp, False))
+tempButton.fitToText(False, True)
 
 
 
@@ -465,10 +588,10 @@ def debugDraw():
 	textY += textdT.get_height() + spacing
 
 def recursiveDraw(object):
+	object.drawSelf()
+
 	for obj in object.get_children():
 		recursiveDraw(obj)
-
-	object.drawSelf()
 
 def uiDraw():
 	global uiManager
