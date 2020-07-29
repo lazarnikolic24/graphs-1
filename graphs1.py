@@ -519,15 +519,14 @@ def handleEvent(event):
 					
 					selection = selectConnection(event.pos[0], event.pos[1])
 	
-					if selection[0] and selectedNodeB != 0:
+					if selection[0]:
 						graph.disconnect(selection[1], selection[2])
 						graph.link(selectedNodeA, selection[1])
 						graph.link(selectedNodeA, selection[2])
-	
-					else:
-						if selectedNodeB != None:
-							graph.link(selectedNodeA, selectedNodeB)
-						selectedNodeB = None
+
+					if selectedNodeB != None:
+						graph.link(selectedNodeA, selectedNodeB)
+					selectedNodeB = None
 
 
 		elif event.button == 3 and not dragging:
