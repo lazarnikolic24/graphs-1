@@ -132,19 +132,47 @@ def selectNode(x, y):
 
 # Currently has issues, will be reworked
 def selectConnection(x, y):
+	x1 = (x - 10, x)
+	y1 = (y, y - 10)
+	x2 = (x + 10, x)
+	y2 = (y, y + 10)
+
 	for nodeA in graph.connections:
 		for nodeB in graph.connections[nodeA]:
-			r = 10
-			d = pg.math.Vector2((nodeB.x - nodeA.x), (nodeB.y - nodeA.y))
-			f = pg.math.Vector2((nodeA.x - x), (nodeA.y - y))
-		
-			a = d.dot(d)
-			b = 2 * f.dot(d)
-			c = f.dot(f) - r * r
+			for i in range(0, 2):
+				x3 = nodeA.x
+				y3 = nodeA.y
+				x4 = nodeB.x
+				y4 = nodeB.y
 
-			if b * b - 4 * a * c >= 0:
-				return (True, nodeA, nodeB)
+				divisor = (x1[i] - x2[i]) * (y3 - y4) - (y1[i] - y2[i]) * (x3 - x4)
+
+				if divisor != 0:
+					t = (x1[i] - x3) * (y3 - y4) - (y1[i] - y3) * (x3 - x4)
+					t /= divisor
+					u = -1 * ((x1[i] - x2[i]) * (y1[i] - y3) - (y1[i] - y2[i]) * (x1[i] - x3))
+					u /= divisor
+
+				if divisor == 0 or (t >= 0 and t <= 1 and u >= 0 and u <= 1):
+					return (True, nodeA, nodeB)
+
 	return (False, None, None)
+
+	# old code, doesn't work as well and is slow
+
+#	for nodeA in graph.connections:
+#		for nodeB in graph.connections[nodeA]:
+#			r = 10
+#			d = pg.math.Vector2((nodeB.x - nodeA.x), (nodeB.y - nodeA.y))
+#			f = pg.math.Vector2((nodeA.x - x), (nodeA.y - y))
+#		
+#			a = d.dot(d)
+#			b = 2 * f.dot(d)
+#			c = f.dot(f) - r * r
+#
+#			if b * b - 4 * a * c >= 0:
+#				return (True, nodeA, nodeB)
+#	return (False, None, None)
 
 def handleEvent(event):
 	global graph, selectedNodeA, selectedNodeB, dragging
@@ -160,21 +188,32 @@ def handleEvent(event):
 			if selection[0]:
 				selectedNodeB = selectedNodeA
 				selectedNodeA = selection[1]
+				if selectedNodeB != None:
+					graph.link(selectedNodeA, selectedNodeB)
+				selectedNodeB = None
 			else:
 				selectedNodeB = selectedNodeA
 				selectedNodeA = graph.append(Node(event.pos[0], event.pos[1]))
+				
+				selection = selectConnection(event.pos[0], event.pos[1])
 
-			if selectedNodeB != None:
-				graph.link(selectedNodeA, selectedNodeB)
-			selectedNodeB = None
+				if selection[0] and selectedNodeB != 0:
+					graph.disconnect(selection[1], selection[2])
+					graph.link(selectedNodeA, selection[1])
+					graph.link(selectedNodeA, selection[2])
+
+				else:
+					if selectedNodeB != None:
+						graph.link(selectedNodeA, selectedNodeB)
+					selectedNodeB = None
+
 
 		elif event.button == 3 and not dragging:
 			#RIGHT CLICK
 			selection = selectNode(event.pos[0], event.pos[1])
 			if selection[0]:
 				graph.remove(selection[1])
-			elif selectedNodeA == None and False:
-				# Has issues, will be reworked
+			elif selectedNodeA == None:
 				selection = selectConnection(event.pos[0], event.pos[1])
 				if selection[0]:
 					graph.disconnect(selection[1], selection[2])
@@ -240,10 +279,16 @@ def draw():
 
 
 	mousePos = pg.mouse.get_pos()
-#	if not dragging and selectedNodeA == None:
-#		closestConnection = selectConnection(mousePos[0], mousePos[1])
-#		if closestConnection[0]:
-#			pg.draw.line(mainSurface, col_darkyellow, closestConnection[1].get_pos(), closestConnection[2].get_pos(), 3)
+
+	closestNode = (False, None)
+	if not dragging and selectedNodeA == None:
+		closestNode = selectNode(mousePos[0], mousePos[1])
+
+	if not dragging and selectedNodeA == None and not closestNode[0]:
+		closestConnection = selectConnection(mousePos[0], mousePos[1])
+		if closestConnection[0]:
+			pg.draw.line(mainSurface, col_darkyellow, closestConnection[1].get_pos(), closestConnection[2].get_pos(), 3)
+
 
 	if selectedNodeA != None and not dragging:
 		closestNode = selectNode(mousePos[0], mousePos[1])
@@ -260,10 +305,10 @@ def draw():
 		pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize)
 
 
-#	if not dragging and selectedNodeA == None:
-#		closestNode = selectNode(mousePos[0], mousePos[1])
-#		if closestNode[0]:
-#			pg.draw.circle(mainSurface, col_darkyellow, closestNode[1].get_pos(), nodeSize + 1)
+	if not dragging and selectedNodeA == None:
+		#closestNode = selectNode(mousePos[0], mousePos[1])
+		if closestNode[0]:
+			pg.draw.circle(mainSurface, col_darkyellow, closestNode[1].get_pos(), nodeSize + 1)
 
 	mainSurface.unlock()
 
