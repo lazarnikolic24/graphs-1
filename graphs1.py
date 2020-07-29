@@ -23,6 +23,8 @@ col_orange = pg.Color("orange")
 col_yellow = pg.Color("yellow")
 col_gray = pg.Color("gray")
 col_darkyellow = pg.Color("yellow4")
+col_darkpurp = pg.Color("purple3")
+col_darkerpurp = pg.Color("purple4")
 
 
 nodeSize = 10
@@ -58,6 +60,12 @@ def col_lerp(a, b, t):
 
 def dist(A, B):
 	return math.sqrt(math.fabs(A[0] - B[0])**2 + math.fabs(A[1] - B[1])**2)
+
+
+
+# GRAPH
+# CODE
+
 
 
 class Node:
@@ -107,14 +115,9 @@ class Graph:
 			self.connections[nodeB].remove(nodeA)
 
 graph = Graph()
-#node1 = graph.append(Node(screenX // 2, screenY // 2))
-#node2 = graph.append(Node(screenX // 2, screenY // 2 + 100))
-#graph.link(node1, node2)
-
-selectedNodeA = None
-selectedNodeB = None
-
-dragging = False
+node1 = graph.append(Node(screenX // 2, screenY // 2))
+node2 = graph.append(Node(screenX // 2, screenY // 2 + 100))
+graph.link(node1, node2)
 
 def selectNode(x, y):
 	min_dist = screenX * screenY
@@ -147,11 +150,23 @@ def selectConnection(x, y):
 
 				divisor = (x1[i] - x2[i]) * (y3 - y4) - (y1[i] - y2[i]) * (x3 - x4)
 
-				if divisor != 0:
-					t = (x1[i] - x3) * (y3 - y4) - (y1[i] - y3) * (x3 - x4)
-					t /= divisor
-					u = -1 * ((x1[i] - x2[i]) * (y1[i] - y3) - (y1[i] - y2[i]) * (x1[i] - x3))
-					u /= divisor
+#				print(x1[i], ":", y1[i], x2[i], ":", y2[i], x3, ":", y3, x4, ":", y4)
+#				print((x1[i] - x2[i]), " ", (y3 - y4), " ", (y1[i] - y2[i]), " ", (x3 - x4))
+#				print(divisor)
+
+				if divisor == 0:
+					x3 += 5
+					y3 += 5
+					divisor = (x1[i] - x2[i]) * (y3 - y4) - (y1[i] - y2[i]) * (x3 - x4)
+#					print(x1[i], ":", y1[i], x2[i], ":", y2[i], x3, ":", y3, x4, ":", y4)
+#					print((x1[i] - x2[i]), " ", (y3 - y4), " ", (y1[i] - y2[i]), " ", (x3 - x4))
+#					print(divisor)
+
+				t = (x1[i] - x3) * (y3 - y4) - (y1[i] - y3) * (x3 - x4)
+				t /= divisor
+				u = -1 * ((x1[i] - x2[i]) * (y1[i] - y3) - (y1[i] - y2[i]) * (x1[i] - x3))
+				u /= divisor
+
 
 				if divisor == 0 or (t >= 0 and t <= 1 and u >= 0 and u <= 1):
 					return (True, nodeA, nodeB)
@@ -174,6 +189,182 @@ def selectConnection(x, y):
 #				return (True, nodeA, nodeB)
 #	return (False, None, None)
 
+
+
+# GRAPH
+# CODE/
+
+
+
+# UI
+# CODE
+
+
+
+class uiObject:
+	def __init__(self, x, y, width, height, text, textsize, parent):
+		self.x = x
+		self.y = y
+
+		self.width = width
+		self.height = height
+
+		self.text = text
+		self.textsize = textsize
+
+		self.parent = parent
+
+		self.children = []
+		self.enabled = True
+
+	def childDestroyed(self, child):
+		while child in self.children:
+			self.children.remove(child)
+
+	def get_children(self):
+		returnval = []
+
+		reversedChildren = self.children.copy()
+		reversedChildren.reverse()
+		for child in reversedChildren:
+			returnval.append(child)
+
+		return returnval
+
+	def get_rect(self, dx = 0, dy = 0, dw = 0, dh = 0):
+		return (self.x + dx, self.y + dy, self.width + dw, self.height + dh)
+
+	def onClick(self):
+		pass
+
+	def colTest(self, x, y):
+		if x > self.x and x < self.x + self.width and y > self.y and y < self.y + self.height:
+			return True
+		else: return False
+
+	def drawSelf(self):
+		pass
+
+	def destroy(self):
+		self.parent.childDestroyed(self)
+
+class uiManagerClass():
+	def __init__(self, layers):
+		self.layers = []
+		for i in range(0, layers):
+			self.layers.append([])
+
+	def drawSelf(self):
+		pass
+
+	def colTest(self, x, y):
+		return False
+
+	def get_children(self):
+		returnval = []
+
+		for layer in self.layers:
+			reversedLayer = layer.copy()
+			reversedLayer.reverse()
+			for child in reversedLayer:
+				returnval.append(child)
+
+		return returnval
+
+	def create(self, object, layer = 0):
+		if layer == None:
+			layer = len(self.layers)
+
+		while len(self.layers) <= layer:
+			self.layers.append([])
+
+		self.layers[layer].append(object)
+
+	def childDestroyed(self, child):
+		for layer in self.layers:
+			while child in layer:
+				layer.remove(child)
+
+class uiButton(uiObject):
+	def __init__(self, x, y, width, height, text, textsize, parent, color, fitToText = True):
+		super().__init__(x, y, width, height, text, textsize, parent)
+
+		self.value = False
+		self.color = color
+
+		if fitToText:
+			self.fitToText()
+
+	def drawSelf(self):
+		self.internalDraw(self.color)
+
+	def internalDraw(self, color):
+		font = pg.font.SysFont("Verdana", self.textsize, True)
+		text = font.render(self.text, True, col_black, color)
+		text.set_colorkey(color)
+		textRect = text.get_rect()
+		textRect.center = ((self.x + self.width // 2), (self.y + self.height // 2))
+
+		pg.draw.rect(mainSurface, col_white, self.get_rect())
+		pg.draw.rect(mainSurface, color, self.get_rect(2, 2, -4, -4))
+
+		mainSurface.blit(text, textRect)
+
+	def fitToText(self):
+		font = pg.font.SysFont("Verdana", self.textsize, True)
+		textSize = font.size(self.text)
+		self.width = textSize[0] + 20
+		self.height = textSize[1] + 20
+
+	def onClick(self):
+		print("Clicked")
+
+class uiToggleButton(uiButton):
+	def __init__(self, x, y, width, height, text, textsize, parent, color, colorB, fitToText = True):
+		super().__init__(x, y, width, height, text, textsize, parent, color, fitToText)
+
+		self.colorB = colorB
+
+	def drawSelf(self):
+		if self.value:
+			self.internalDraw(self.color)
+		else:
+			self.internalDraw(self.colorB)
+
+	def onClick(self):
+		if self.value:
+			self.value = False
+			print("Turned offf")
+		else:
+			self.value = True
+			print("turned on!")
+	
+
+uiManager = uiManagerClass(3)
+uiManager.create(uiToggleButton(200, 200, 80, 80, "Algorithms", 19, uiManager, col_darkpurp, col_darkerpurp))
+
+
+
+# UI
+# CODE/
+
+
+
+selectedNodeA = None
+selectedNodeB = None
+
+dragging = False
+
+def recursiveClick(object, x, y):
+	global clickConsumed
+	for obj in object.get_children():
+		recursiveClick(obj, x, y)
+		if clickConsumed:
+			return
+	if object.colTest(x, y):
+		object.onClick()
+		clickConsumed = True
+
 def handleEvent(event):
 	global graph, selectedNodeA, selectedNodeB, dragging
 
@@ -184,28 +375,36 @@ def handleEvent(event):
 	elif event.type == pg.MOUSEBUTTONDOWN:
 		if event.button == 1 and not dragging:
 			#LEFT CLICK
-			selection = selectNode(event.pos[0], event.pos[1])
-			if selection[0]:
-				selectedNodeB = selectedNodeA
-				selectedNodeA = selection[1]
-				if selectedNodeB != None:
-					graph.link(selectedNodeA, selectedNodeB)
-				selectedNodeB = None
-			else:
-				selectedNodeB = selectedNodeA
-				selectedNodeA = graph.append(Node(event.pos[0], event.pos[1]))
-				
-				selection = selectConnection(event.pos[0], event.pos[1])
 
-				if selection[0] and selectedNodeB != 0:
-					graph.disconnect(selection[1], selection[2])
-					graph.link(selectedNodeA, selection[1])
-					graph.link(selectedNodeA, selection[2])
+			global clickConsumed, uiManager
+			clickConsumed = False
 
-				else:
+			recursiveClick(uiManager, event.pos[0], event.pos[1])
+
+			if not clickConsumed:
+
+				selection = selectNode(event.pos[0], event.pos[1])
+				if selection[0]:
+					selectedNodeB = selectedNodeA
+					selectedNodeA = selection[1]
 					if selectedNodeB != None:
 						graph.link(selectedNodeA, selectedNodeB)
 					selectedNodeB = None
+				else:
+					selectedNodeB = selectedNodeA
+					selectedNodeA = graph.append(Node(event.pos[0], event.pos[1]))
+					
+					selection = selectConnection(event.pos[0], event.pos[1])
+	
+					if selection[0] and selectedNodeB != 0:
+						graph.disconnect(selection[1], selection[2])
+						graph.link(selectedNodeA, selection[1])
+						graph.link(selectedNodeA, selection[2])
+	
+					else:
+						if selectedNodeB != None:
+							graph.link(selectedNodeA, selectedNodeB)
+						selectedNodeB = None
 
 
 		elif event.button == 3 and not dragging:
@@ -265,8 +464,15 @@ def debugDraw():
 
 	textY += textdT.get_height() + spacing
 
+def recursiveDraw(object):
+	for obj in object.get_children():
+		recursiveDraw(obj)
+
+	object.drawSelf()
+
 def uiDraw():
-	pass
+	global uiManager
+	recursiveDraw(uiManager)
 
 def draw():
 	mainSurface.lock()
@@ -316,6 +522,8 @@ def draw():
 		col = nodeCol
 		if graph.nodes[i] == selectedNodeA:
 			col = selectedCol
+		if graph.nodes[i] == closestNode[1]:
+			col = col_darkyellow
 
 		string = str(i)
 		if len(string) == 2:
