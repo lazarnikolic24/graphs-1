@@ -26,6 +26,7 @@ col_darkgray = pg.Color("azure4")
 col_darkyellow = pg.Color("yellow4")
 col_darkpurp = pg.Color("purple3")
 col_darkerpurp = pg.Color("purple4")
+col_turquoise = pg.Color("turquoise")
 
 
 nodeSize = 10
@@ -453,7 +454,11 @@ class uiCheckbox(uiToggleButton):
 def algorithmsClickEvent(self):
 	global algorithmMode
 
-	if algorithmMode == 2: return
+	if algorithmMode == 2:
+		if self.value:
+			self.value = False
+		else: self.value = True
+		return
 
 	if self.value:
 		tempButton = uiButton(self.x, self.y + self.height + 8, 0, 0, 20, "BFS", 18, self, bfsClickEvent, self.colorB, True)
@@ -465,57 +470,102 @@ def algorithmsClickEvent(self):
 		self.clearChildren()
 
 		algorithmMode = 0
+		global algoStartNode, algoEndNode, selectedNodeA, selectedNodeB
+		selectedNodeA = algoStartNode
+		selectedNodeB = None
+		algoStartNode = None
+		algoEndNode = None
 
 def bfsClickEvent(self):
 	global algorithmMode
+
+	if algorithmMode == 2: return
+
 	if algorithmMode == 0:
 		algorithmMode = 1
 		algorithm = "BFS"
+
+		global algoStartNode, algoEndNode, selectedNodeA, selectedNodeB
+		algoStartNode = selectedNodeA
+		algoEndNode = None
+		selectedNodeA = None
+		selectedNodeB = None
 	
 		self.clearChildren()
 	
 		tempPanel = uiPanel(100, 100, 100, 100, "panel", self, col_darkerpurp)
 		self.children.append(tempPanel)
 	
-		tempText = uiText(tempPanel.x + 4, tempPanel.y + 4, 0, 0, "Start", 15, self, col_darkerpurp, True)
+		tempText = uiText(tempPanel.x + 4, tempPanel.y + 4, 0, 0, "Start", 15, tempPanel, col_darkerpurp, True)
 		tempPanel.children.append(tempText)
 	
 		tempText3 = tempText
 
-		tempText = uiText(tempPanel.x + 4, tempText.y + tempText.height + 4, 0, 0, "Search full graph", 15, self, col_darkerpurp, True)
+		tempText = uiText(tempPanel.x + 4, tempText.y + tempText.height + 4, 0, 0, "Search full graph", 15, tempPanel, col_darkerpurp, True)
 		tempPanel.children.append(tempText)
 	
 		tempText2 = tempText
 	
-		tempCheckbox = uiCheckbox(tempText2.x + 4 + tempText2.width, tempText2.y, 20, "Full graph?", 15, self, None, col_white, col_darkgray)
+		tempCheckbox = uiCheckbox(tempText2.x + 4 + tempText2.width, tempText2.y, 20, "Full graph?", 15, tempPanel, None, col_white, col_darkgray)
 		tempPanel.children.append(tempCheckbox)
+
+		global algoSearchFullGraph
+
+		algoSearchFullGraph = tempCheckbox
 	
-		tempText = uiText(tempPanel.x + 4, tempText.y + tempText.height + 4, 0, 0, "End", 15, self, col_darkerpurp, True)
+		tempText = uiText(tempPanel.x + 4, tempText.y + tempText.height + 4, 0, 0, "End", 15, tempPanel, col_darkerpurp, True)
 		tempPanel.children.append(tempText)
 
 		tempText4 = tempText
 	
 		tempPanel.encapsulateChildren()
 
-		tempButton =  uiButton(tempPanel.x + tempPanel.width, tempText3.y, 0, 0, 8, "mmmmm", 15, self, None, col_white, False)
+		global algoFieldA, algoFieldB
+
+		tempButton =  uiButton(tempPanel.x + tempPanel.width, tempText3.y, 0, 0, 8, "mmmmm", 15, tempPanel, fieldClickEvent, col_white, False)
 		tempButton.fitToText(False, True, False)
 		tempButton.height = tempText3.height
 		tempButton.text = ""
 		tempPanel.children.append(tempButton)
 
-		tempButton =  uiButton(tempPanel.x + tempPanel.width, tempText4.y, 0, 0, 8, "mmmmm", 15, self, None, col_white, False)
+		algoFieldA = tempButton
+
+		if algoStartNode != None:
+			i = 0
+			while graph.nodes[i] != algoStartNode:
+				i += 1
+			algoFieldA.text = str(i)
+
+		tempButton =  uiButton(tempPanel.x + tempPanel.width, tempText4.y, 0, 0, 8, "mmmmm", 15, tempPanel, fieldClickEvent, col_white, False)
 		tempButton.fitToText(False, True, False)
 		tempButton.height = tempText4.height
 		tempButton.text = ""
 		tempPanel.children.append(tempButton)
 
-		tempButton =  uiButton(tempPanel.x + tempPanel.width // 2, tempPanel.y + tempPanel.height, 0, 0, 10, "Search", 16, self, None, self.color, False)
+		algoFieldB = tempButton
+
+		tempButton =  uiButton(tempPanel.x + tempPanel.width // 2, tempPanel.y + tempPanel.height, 0, 0, 10, "Search", 16, tempPanel, startClickEvent, self.color, False)
 		tempButton.fitToText(False, True, True)
 		tempPanel.children.append(tempButton)
 	
 		tempPanel.encapsulateChildren()
 
+def fieldClickEvent(self):
+	global algoStartNode, algoEndNode, algoFieldA, algoFieldB
 
+	self.text = ""
+
+	if self == algoFieldA:
+		algoStartNode = None
+	else:
+		algoEndNode = None
+
+def startClickEvent(self):
+	global algorithmMode, algoSteps, algoStartNode, algoEndNode
+	if algoStartNode != None and algoEndNode != None:
+		algorithmMode = 2
+		algoSteps = 0
+		self.parent.destroy()
 
 uiManager = uiManagerClass(3)
 tempButton = uiManager.create(uiToggleButton(screenX - 20, 20, 0, 0, 20, "Algorithms", 19, uiManager, algorithmsClickEvent, col_darkpurp, col_darkerpurp, False))
@@ -534,6 +584,13 @@ algorithmMode = 0
 # 2 - running
 
 algorithm = ""
+
+algoStartNode = None
+algoEndNode = None
+algoSearchFullGraph = None
+
+algoSteps = 0
+
 
 selectedNodeA = None
 selectedNodeB = None
@@ -562,14 +619,36 @@ def handleEvent(event):
 		if event.button == 1 and not dragging:
 			#LEFT CLICK
 
-			global clickConsumed, uiManager
+			global clickConsumed, uiManager, algoStartNode, algoEndNode, algoFieldA, algoFieldB
 			clickConsumed = False
 
 			recursiveClick(uiManager, event.pos[0], event.pos[1])
 
 			if not clickConsumed:
+
 				if algorithmMode == 1:
-					pass
+
+					selection = selectNode(event.pos[0], event.pos[1])
+					if selection[0]:
+
+						if algoStartNode == None:
+							algoStartNode = selection[1]
+
+							i = 0
+							while graph.nodes[i] != selection[1]:
+								i += 1
+
+							algoFieldA.text = str(i)
+						else:
+							algoEndNode = selection[1]
+
+							i = 0
+							while graph.nodes[i] != selection[1]:
+								i += 1
+
+							algoFieldB.text = str(i)
+
+
 				elif algorithmMode == 0:
 					selection = selectNode(event.pos[0], event.pos[1])
 					if selection[0]:
@@ -598,7 +677,16 @@ def handleEvent(event):
 			#RIGHT CLICK
 
 			if algorithmMode == 1:
-				pass
+
+				selection = selectNode(event.pos[0], event.pos[1])
+				if selection[0]:
+					if selection[1] == algoStartNode:
+						algoStartNode = None
+						algoFieldA.text = ""
+					if selection[1] == algoEndNode:
+						algoEndNode = None
+						algoFieldB.text = ""
+
 			elif algorithmMode == 0:
 				selection = selectNode(event.pos[0], event.pos[1])
 				if selection[0]:
@@ -674,21 +762,22 @@ def draw():
 
 	mainSurface.fill(col_black)
 
-	for node in graph.connections:
-		for link in graph.connections[node]:
-			pg.draw.line(mainSurface, linkCol, node.get_pos(), link.get_pos(), 2)
-
-
 	mousePos = pg.mouse.get_pos()
 
 	closestNode = (False, None)
 	if not dragging:
 		closestNode = selectNode(mousePos[0], mousePos[1])
 
-	if not dragging and (selectedNodeA == None or True) and not closestNode[0] and algorithmMode == 0:
-		closestConnection = selectConnection(mousePos[0], mousePos[1])
-		if closestConnection[0]:
-			pg.draw.line(mainSurface, col_darkyellow, closestConnection[1].get_pos(), closestConnection[2].get_pos(), 3)
+	closestConnection = selectConnection(mousePos[0], mousePos[1])
+	for node in graph.connections:
+		for link in graph.connections[node]:
+			col = linkCol
+
+			if not dragging and (selectedNodeA == None or True) and not closestNode[0] and algorithmMode == 0:
+				if closestConnection[0] and (node == closestConnection[1] and link == closestConnection[2]) or (node == closestConnection[2] and link == closestConnection[1]):
+					col = col_darkyellow
+
+			pg.draw.line(mainSurface, col, node.get_pos(), link.get_pos(), 2)
 
 
 	if selectedNodeA != None and not dragging and algorithmMode == 0:
@@ -700,16 +789,39 @@ def draw():
 
 
 	for node in graph.nodes:
-		col = nodeCol
-		if node == selectedNodeA:
-			col = selectedCol
-		pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize)
+		if algorithmMode == 1:
+			col = nodeCol
+			selected = False
 
+			if node == algoEndNode:
+				selected = True
+				col = col_turquoise
+				pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize + 3)
 
-	if not dragging and selectedNodeA == None:
-		#closestNode = selectNode(mousePos[0], mousePos[1])
-		if closestNode[0]:
-			pg.draw.circle(mainSurface, col_darkyellow, closestNode[1].get_pos(), nodeSize + 1)
+			if node == algoStartNode:
+				selected = True
+				col = selectedCol
+				pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize + 1)
+
+			if not dragging and selectedNodeA == None:
+				if closestNode[0] and node == closestNode[1]:
+					col = col_darkyellow
+					if selected:
+						pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize)
+
+			if not selected:
+				pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize)
+		else:
+			col = nodeCol
+			if node == selectedNodeA:
+				col = selectedCol
+	
+			if not dragging and selectedNodeA == None:
+				if closestNode[0] and node == closestNode[1]:
+					col = col_darkyellow
+	
+			pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize)
+
 
 	mainSurface.unlock()
 
