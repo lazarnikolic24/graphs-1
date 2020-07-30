@@ -22,6 +22,7 @@ col_blue = pg.Color("blue")
 col_orange = pg.Color("orange")
 col_yellow = pg.Color("yellow")
 col_gray = pg.Color("gray")
+col_darkgray = pg.Color("azure4")
 col_darkyellow = pg.Color("yellow4")
 col_darkpurp = pg.Color("purple3")
 col_darkerpurp = pg.Color("purple4")
@@ -266,6 +267,9 @@ class uiObject:
 
 		self.children.clear()
 
+	def handleEvent(self, event, *args):
+		pass
+
 class uiManagerClass():
 	def __init__(self, layers):
 		self.layers = []
@@ -367,8 +371,9 @@ class uiText(uiObject):
 			self.y -= self.height
 
 class uiButton(uiObject):
-	def __init__(self, x, y, width, height, text, textsize, parent, clickEvent, color, fitToText = True):
+	def __init__(self, x, y, width, height, padding, text, textsize, parent, clickEvent, color, fitToText = True):
 		super().__init__(x, y, width, height, text, textsize, parent, clickEvent)
+		self.padding = padding
 
 		self.value = False
 		self.color = color
@@ -391,15 +396,19 @@ class uiButton(uiObject):
 
 		mainSurface.blit(text, textRect)
 
-	def fitToText(self, lockLeft = True, lockTop = True):
+	def fitToText(self, lockLeft = True, lockTop = True, horizontalCenter = False):
 		font = pg.font.SysFont("Verdana", self.textsize, True)
 		textSize = font.size(self.text)
 
-		self.width = textSize[0] + 20
-		if not lockLeft:
-			self.x -= self.width
+		if horizontalCenter:
+			self.width = textSize[0] + self.padding
+			self.x -= self.width // 2
+		else:
+			self.width = textSize[0] + self.padding
+			if not lockLeft:
+				self.x -= self.width
 
-		self.height = textSize[1] + 20
+		self.height = textSize[1] + self.padding
 		if not lockTop:
 			self.y -= self.height
 
@@ -410,8 +419,8 @@ class uiButton(uiObject):
 			print("Clicked " + self.text)
 
 class uiToggleButton(uiButton):
-	def __init__(self, x, y, width, height, text, textsize, parent, clickEvent, color, colorB, fitToText = True):
-		super().__init__(x, y, width, height, text, textsize, parent, clickEvent, color, fitToText)
+	def __init__(self, x, y, width, height, padding, text, textsize, parent, clickEvent, color, colorB, fitToText = True):
+		super().__init__(x, y, width, height, padding, text, textsize, parent, clickEvent, color, fitToText)
 
 		self.colorB = colorB
 
@@ -432,38 +441,68 @@ class uiToggleButton(uiButton):
 		else:
 			print(self.value)
 
+class uiCheckbox(uiToggleButton):
+	def __init__(self, x, y, width, text, textsize, parent, clickEvent, color, colorB):
+		super().__init__(x, y, width, width, 0, text, textsize, parent, clickEvent, color, colorB, False)
+
+	def internalDraw(self, color):
+		pg.draw.rect(mainSurface, col_gray, self.get_rect())
+		pg.draw.rect(mainSurface, color, self.get_rect(2, 2, -4, -4))
 
 	
 def algorithmsClickEvent(self):
+	global algorithmMode
+
+	if algorithmMode == 2: return
+
 	if self.value:
-		tempButton = uiButton(self.x, self.y + self.height + 8, 0, 0, "BFS", 18, self, bfsClickEvent, self.colorB, True)
+		tempButton = uiButton(self.x, self.y + self.height + 8, 0, 0, 20, "BFS", 18, self, bfsClickEvent, self.colorB, True)
 		self.children.append(tempButton)
 
-		tempButton = uiButton(self.x, tempButton.y + tempButton.height + 8, 0, 0, "DFS", 18, self, None, self.colorB, True)
+		tempButton = uiButton(self.x, tempButton.y + tempButton.height + 8, 0, 0, 20, "DFS", 18, self, None, self.colorB, True)
 		self.children.append(tempButton)
 	else:
 		self.clearChildren()
 
+		algorithmMode = 0
+
 def bfsClickEvent(self):
-	self.clearChildren()
+	global algorithmMode
+	if algorithmMode == 0:
+		algorithmMode = 1
+		algorithm = "BFS"
+	
+		self.clearChildren()
+	
+		tempPanel = uiPanel(100, 100, 100, 100, "panel", self, col_darkerpurp)
+		self.children.append(tempPanel)
+	
+		tempText = uiText(tempPanel.x + 4, tempPanel.y + 4, 0, 0, "Start", 15, self, col_darkerpurp, True)
+		tempPanel.children.append(tempText)
+	
+		tempText = uiText(tempPanel.x + 4, tempText.y + tempText.height, 0, 0, "Search full graph", 15, self, col_darkerpurp, True)
+		tempPanel.children.append(tempText)
+	
+		tempText2 = tempText
+	
+		tempCheckbox = uiCheckbox(tempText2.x + 4 + tempText2.width, tempText2.y, 20, "Full graph?", 15, self, None, col_white, col_darkgray)
+		tempPanel.children.append(tempCheckbox)
+	
+		tempText = uiText(tempPanel.x + 4, tempText.y + tempText.height, 0, 0, "End", 15, self, col_darkerpurp, True)
+		tempPanel.children.append(tempText)
+	
+		tempPanel.encapsulateChildren()
+	
+		tempButton =  uiButton(tempPanel.x + tempPanel.width // 2, tempPanel.y + tempPanel.height, 0, 0, 10, "Search", 16, self, None, self.color, False)
+		tempButton.fitToText(False, True, True)
+		tempPanel.children.append(tempButton)
+	
+		tempPanel.encapsulateChildren()
 
-	tempPanel = uiPanel(100, 100, 100, 100, "panel", self, col_darkerpurp)
-	self.children.append(tempPanel)
-
-	tempText = uiText(tempPanel.x + 4, tempPanel.y + 4, 0, 0, "Start", 15, self, col_darkerpurp, True)
-	tempPanel.children.append(tempText)
-
-	tempText = uiText(tempPanel.x + 4, tempText.y + tempText.height, 0, 0, "Search full graph", 15, self, col_darkerpurp, True)
-	tempPanel.children.append(tempText)
-
-	tempText = uiText(tempPanel.x + 4, tempText.y + tempText.height, 0, 0, "End", 15, self, col_darkerpurp, True)
-	tempPanel.children.append(tempText)
-
-	tempPanel.encapsulateChildren()
 
 
 uiManager = uiManagerClass(3)
-tempButton = uiManager.create(uiToggleButton(screenX - 20, 20, 0, 0, "Algorithms", 19, uiManager, algorithmsClickEvent, col_darkpurp, col_darkerpurp, False))
+tempButton = uiManager.create(uiToggleButton(screenX - 20, 20, 0, 0, 20, "Algorithms", 19, uiManager, algorithmsClickEvent, col_darkpurp, col_darkerpurp, False))
 tempButton.fitToText(False, True)
 
 
@@ -472,6 +511,13 @@ tempButton.fitToText(False, True)
 # CODE/
 
 
+
+algorithmMode = 0
+# 0 - not running
+# 1 - configuring
+# 2 - running
+
+algorithm = ""
 
 selectedNodeA = None
 selectedNodeB = None
