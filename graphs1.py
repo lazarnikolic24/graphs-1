@@ -480,7 +480,9 @@ def bfsClickEvent(self):
 		tempText = uiText(tempPanel.x + 4, tempPanel.y + 4, 0, 0, "Start", 15, self, col_darkerpurp, True)
 		tempPanel.children.append(tempText)
 	
-		tempText = uiText(tempPanel.x + 4, tempText.y + tempText.height, 0, 0, "Search full graph", 15, self, col_darkerpurp, True)
+		tempText3 = tempText
+
+		tempText = uiText(tempPanel.x + 4, tempText.y + tempText.height + 4, 0, 0, "Search full graph", 15, self, col_darkerpurp, True)
 		tempPanel.children.append(tempText)
 	
 		tempText2 = tempText
@@ -488,11 +490,25 @@ def bfsClickEvent(self):
 		tempCheckbox = uiCheckbox(tempText2.x + 4 + tempText2.width, tempText2.y, 20, "Full graph?", 15, self, None, col_white, col_darkgray)
 		tempPanel.children.append(tempCheckbox)
 	
-		tempText = uiText(tempPanel.x + 4, tempText.y + tempText.height, 0, 0, "End", 15, self, col_darkerpurp, True)
+		tempText = uiText(tempPanel.x + 4, tempText.y + tempText.height + 4, 0, 0, "End", 15, self, col_darkerpurp, True)
 		tempPanel.children.append(tempText)
+
+		tempText4 = tempText
 	
 		tempPanel.encapsulateChildren()
-	
+
+		tempButton =  uiButton(tempPanel.x + tempPanel.width, tempText3.y, 0, 0, 8, "mmmmm", 15, self, None, col_white, False)
+		tempButton.fitToText(False, True, False)
+		tempButton.height = tempText3.height
+		tempButton.text = ""
+		tempPanel.children.append(tempButton)
+
+		tempButton =  uiButton(tempPanel.x + tempPanel.width, tempText4.y, 0, 0, 8, "mmmmm", 15, self, None, col_white, False)
+		tempButton.fitToText(False, True, False)
+		tempButton.height = tempText4.height
+		tempButton.text = ""
+		tempPanel.children.append(tempButton)
+
 		tempButton =  uiButton(tempPanel.x + tempPanel.width // 2, tempPanel.y + tempPanel.height, 0, 0, 10, "Search", 16, self, None, self.color, False)
 		tempButton.fitToText(False, True, True)
 		tempPanel.children.append(tempButton)
@@ -535,11 +551,12 @@ def recursiveClick(object, x, y):
 		clickConsumed = True
 
 def handleEvent(event):
-	global graph, selectedNodeA, selectedNodeB, dragging
+	global graph, selectedNodeA, selectedNodeB, dragging, algorithmMode
 
 	if event.type == pg.KEYDOWN:
 		if event.key == pg.K_ESCAPE:
 			selectedNodeA = None
+			selectedNodeB = None
 
 	elif event.type == pg.MOUSEBUTTONDOWN:
 		if event.button == 1 and not dragging:
@@ -551,49 +568,59 @@ def handleEvent(event):
 			recursiveClick(uiManager, event.pos[0], event.pos[1])
 
 			if not clickConsumed:
-
-				selection = selectNode(event.pos[0], event.pos[1])
-				if selection[0]:
-					selectedNodeB = selectedNodeA
-					selectedNodeA = selection[1]
-					if selectedNodeB != None:
-						graph.link(selectedNodeA, selectedNodeB)
-					selectedNodeB = None
-				else:
-					selectedNodeB = selectedNodeA
-					selectedNodeA = graph.append(Node(event.pos[0], event.pos[1]))
-					
-					selection = selectConnection(event.pos[0], event.pos[1])
-	
+				if algorithmMode == 1:
+					pass
+				elif algorithmMode == 0:
+					selection = selectNode(event.pos[0], event.pos[1])
 					if selection[0]:
-						graph.disconnect(selection[1], selection[2])
-						graph.link(selectedNodeA, selection[1])
-						graph.link(selectedNodeA, selection[2])
-
-					if selectedNodeB != None:
-						graph.link(selectedNodeA, selectedNodeB)
-					selectedNodeB = None
+						selectedNodeB = selectedNodeA
+						selectedNodeA = selection[1]
+						if selectedNodeB != None:
+							graph.link(selectedNodeA, selectedNodeB)
+						selectedNodeB = None
+					else:
+						selectedNodeB = selectedNodeA
+						selectedNodeA = graph.append(Node(event.pos[0], event.pos[1]))
+						
+						selection = selectConnection(event.pos[0], event.pos[1])
+		
+						if selection[0]:
+							graph.disconnect(selection[1], selection[2])
+							graph.link(selectedNodeA, selection[1])
+							graph.link(selectedNodeA, selection[2])
+	
+						if selectedNodeB != None:
+							graph.link(selectedNodeA, selectedNodeB)
+						selectedNodeB = None
 
 
 		elif event.button == 3 and not dragging:
 			#RIGHT CLICK
-			selection = selectNode(event.pos[0], event.pos[1])
-			if selection[0]:
-				graph.remove(selection[1])
-			elif selectedNodeA == None:
-				selection = selectConnection(event.pos[0], event.pos[1])
-				if selection[0]:
-					graph.disconnect(selection[1], selection[2])
 
-			selectedNodeA = None
-			selectedNodeB = None
+			if algorithmMode == 1:
+				pass
+			elif algorithmMode == 0:
+				selection = selectNode(event.pos[0], event.pos[1])
+				if selection[0]:
+					graph.remove(selection[1])
+				elif selectedNodeA == None:
+					selection = selectConnection(event.pos[0], event.pos[1])
+					if selection[0]:
+						graph.disconnect(selection[1], selection[2])
+	
+				selectedNodeA = None
+				selectedNodeB = None
 
 		elif event.button == 2:
 			#MIDDLE CLICK
-			selection = selectNode(event.pos[0], event.pos[1])
-			if selection[0]:
-				selectedNodeA = selection[1]
-				dragging = True
+
+			if algorithmMode == 1:
+				pass
+			elif algorithmMode == 0:
+				selection = selectNode(event.pos[0], event.pos[1])
+				if selection[0]:
+					selectedNodeA = selection[1]
+					dragging = True
 
 	elif event.type == pg.MOUSEBUTTONUP:
 		if event.button == 2:
@@ -655,16 +682,16 @@ def draw():
 	mousePos = pg.mouse.get_pos()
 
 	closestNode = (False, None)
-	if not dragging and selectedNodeA == None:
+	if not dragging:
 		closestNode = selectNode(mousePos[0], mousePos[1])
 
-	if not dragging and selectedNodeA == None and not closestNode[0]:
+	if not dragging and (selectedNodeA == None or True) and not closestNode[0] and algorithmMode == 0:
 		closestConnection = selectConnection(mousePos[0], mousePos[1])
 		if closestConnection[0]:
 			pg.draw.line(mainSurface, col_darkyellow, closestConnection[1].get_pos(), closestConnection[2].get_pos(), 3)
 
 
-	if selectedNodeA != None and not dragging:
+	if selectedNodeA != None and not dragging and algorithmMode == 0:
 		closestNode = selectNode(mousePos[0], mousePos[1])
 		if closestNode[0]:
 			pg.draw.line(mainSurface, col_gray, selectedNodeA.get_pos(), closestNode[1].get_pos(), 2)
