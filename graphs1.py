@@ -27,6 +27,7 @@ col_darkyellow = pg.Color("yellow4")
 col_darkpurp = pg.Color("purple3")
 col_darkerpurp = pg.Color("purple4")
 col_turquoise = pg.Color("turquoise")
+col_lime = pg.Color("lightgreen")
 
 
 nodeSize = 10
@@ -570,8 +571,10 @@ def startClickEvent(self):
 		tempButton =  uiManager.create(uiButton(100, 100, 0, 0, 20, "Step", 18, uiManager, stepClickEvent, col_darkpurp, True))
 
 def stepClickEvent(self):
-	global algoSteps
+	global algoSteps, algoStartNode, algoEndNode
 	algoSteps += 1
+	print(algoSteps)
+	bfs(algoStartNode, algoEndNode, algoSteps)
 
 
 uiManager = uiManagerClass(3)
@@ -592,12 +595,39 @@ bfs_neighbours = []
 currentNode = None
 
 def bfs(start, end, step):
+	global visitedNodes, bfs_neighbours, currentNode
+
+	visitedNodes = [start]
+
+	bfs_neighbours = [start]
+
 	currentNode = start
-	visitedNodes.append(start)
 
 	n_neighbours = 1
-	bfs_neighbours.append(start)
 
+	i = 0
+	steps = 0
+	while i < n_neighbours and steps < step:
+		currentNode = bfs_neighbours[i]
+		for node in graph.connections[currentNode]:
+			if steps >= step:
+				break
+			if not node in visitedNodes:
+				visitedNodes.append(node)
+				bfs_neighbours.append(node)
+				n_neighbours += 1
+			steps += 1
+
+		i += 1
+
+	currentNode = bfs_neighbours[i]
+	for node in graph.connections[currentNode]:
+		if not node in visitedNodes:
+			bfs_neighbours.append(node)
+			n_neighbours += 1
+
+	print(visitedNodes)
+	print(bfs_neighbours)
 
 
 algorithmMode = 0
@@ -833,6 +863,38 @@ def draw():
 
 			if not selected:
 				pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize)
+
+		elif algorithmMode == 2:
+			col = nodeCol
+			selected = False
+
+			if node == selectNode:
+				selected = True
+				col = col_lime
+				pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize + 5)
+
+			if node == algoEndNode:
+				selected = True
+				col = col_turquoise
+				pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize + 3)
+
+			if node == algoStartNode:
+				selected = True
+				col = selectedCol
+				pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize + 1)
+
+			if node in bfs_neighbours and not node in visitedNodes:
+				col = col_darkyellow
+				if selected:
+					pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize)
+			elif node in visitedNodes:
+				col = col_red
+				if selected:
+					pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize)
+
+			if not selected:
+				pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize)
+
 		else:
 			col = nodeCol
 			if node == selectedNodeA:
