@@ -567,6 +567,13 @@ def startClickEvent(self):
 		algoSteps = 0
 		self.parent.destroy()
 
+		tempButton =  uiManager.create(uiButton(100, 100, 0, 0, 20, "Step", 18, uiManager, stepClickEvent, col_darkpurp, True))
+
+def stepClickEvent(self):
+	global algoSteps
+	algoSteps += 1
+
+
 uiManager = uiManagerClass(3)
 tempButton = uiManager.create(uiToggleButton(screenX - 20, 20, 0, 0, 20, "Algorithms", 19, uiManager, algorithmsClickEvent, col_darkpurp, col_darkerpurp, False))
 tempButton.fitToText(False, True)
@@ -575,6 +582,21 @@ tempButton.fitToText(False, True)
 
 # UI
 # CODE/
+
+
+
+visitedNodes = []
+
+bfs_neighbours = []
+
+currentNode = None
+
+def bfs(start, end, step):
+	currentNode = start
+	visitedNodes.append(start)
+
+	n_neighbours = 1
+	bfs_neighbours.append(start)
 
 
 
