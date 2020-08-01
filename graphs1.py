@@ -562,7 +562,7 @@ def fieldClickEvent(self):
 		algoEndNode = None
 
 def startClickEvent(self):
-	global algorithmMode, algoSteps, algoStartNode, algoEndNode
+	global algorithmMode, algoSteps, algoStartNode, algoEndNode, finished
 	if algoStartNode != None and algoEndNode != None:
 		algorithmMode = 2
 		algoSteps = 0
@@ -576,15 +576,17 @@ def stepClickEvent(self):
 	if finished:
 		algorithmMode = 0
 		finished = False
+		algoReset()
 		self.destroy()
-
-	algoSteps += 1
-	#print(algoSteps)
-	bfs(algoStartNode, algoEndNode, algoSteps)
-
-	if finished:
-		self.text = "Finish"
-		self.fitToText()
+	else:
+	
+		algoSteps += 1
+		#print(algoSteps)
+		bfs(algoStartNode, algoEndNode, algoSteps)
+	
+		if finished:
+			self.text = "Finish"
+			self.fitToText()
 
 
 uiManager = uiManagerClass(3)
@@ -596,7 +598,14 @@ tempButton.fitToText(False, True)
 # UI
 # CODE/
 
-
+def algoReset():
+	global visitedNodes, bfs_neighbours, currentNode, currentNodeB, finished, path
+	visitedNodes = []
+	bfs_neighbours = []
+	currentNode = None
+	currentNodeB = None
+	finished = None
+	path = {}
 
 visitedNodes = []
 
@@ -801,13 +810,14 @@ def handleEvent(event):
 						algoFieldB.text = ""
 
 			elif algorithmMode == 0:
-				selection = selectNode(event.pos[0], event.pos[1])
-				if selection[0]:
-					graph.remove(selection[1])
-				elif selectedNodeA == None:
-					selection = selectConnection(event.pos[0], event.pos[1])
+				if selectedNodeA == None:
+					selection = selectNode(event.pos[0], event.pos[1])
 					if selection[0]:
-						graph.disconnect(selection[1], selection[2])
+						graph.remove(selection[1])
+					else:
+						selection = selectConnection(event.pos[0], event.pos[1])
+						if selection[0]:
+							graph.disconnect(selection[1], selection[2])
 	
 				selectedNodeA = None
 				selectedNodeB = None
@@ -942,6 +952,9 @@ def draw():
 				selected = True
 				col = col_orange
 				pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize + 4)
+
+			if node in path:
+				col = col_turquoise
 
 			if node == algoEndNode:
 				selected = True
