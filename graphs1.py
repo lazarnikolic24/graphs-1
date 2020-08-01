@@ -571,10 +571,20 @@ def startClickEvent(self):
 		tempButton =  uiManager.create(uiButton(100, 100, 0, 0, 20, "Step", 18, uiManager, stepClickEvent, col_darkpurp, True))
 
 def stepClickEvent(self):
-	global algoSteps, algoStartNode, algoEndNode
+	global algoSteps, algoStartNode, algoEndNode, algorithmMode, finished
+	
+	if finished:
+		algorithmMode = 0
+		finished = False
+		self.destroy()
+
 	algoSteps += 1
-	print(algoSteps)
+	#print(algoSteps)
 	bfs(algoStartNode, algoEndNode, algoSteps)
+
+	if finished:
+		self.text = "Finish"
+		self.fitToText()
 
 
 uiManager = uiManagerClass(3)
@@ -593,15 +603,24 @@ visitedNodes = []
 bfs_neighbours = []
 
 currentNode = None
+currentNodeB = None
+
+finished = False
+
+path = {}
 
 def bfs(start, end, step):
-	global visitedNodes, bfs_neighbours, currentNode
+	global visitedNodes, bfs_neighbours, currentNode, currentNodeB, finished, path
 
-	visitedNodes = [start]
+	visitedNodes = []
 
 	bfs_neighbours = [start]
 
 	currentNode = start
+	currentNodeB = None
+
+	finished = False
+	path = {}
 
 	n_neighbours = 1
 
@@ -609,25 +628,67 @@ def bfs(start, end, step):
 	steps = 0
 	while i < n_neighbours and steps < step:
 		currentNode = bfs_neighbours[i]
-		for node in graph.connections[currentNode]:
-			if steps >= step:
-				break
-			if not node in visitedNodes:
-				visitedNodes.append(node)
-				bfs_neighbours.append(node)
-				n_neighbours += 1
-			steps += 1
 
-		i += 1
+		steps += 1
+		if steps < step:
 
-	currentNode = bfs_neighbours[i]
-	for node in graph.connections[currentNode]:
-		if not node in visitedNodes:
-			bfs_neighbours.append(node)
-			n_neighbours += 1
+			for node in graph.connections[currentNode]:
+				if steps >= step: break
 
-	print(visitedNodes)
-	print(bfs_neighbours)
+				currentNodeB = node
+
+				steps += 1
+				if steps < step:
+
+					if not node in visitedNodes and not node in bfs_neighbours:
+						bfs_neighbours.append(node)
+						n_neighbours += 1
+
+						path[node] = bfs_neighbours[i]
+
+						steps += 1
+						if steps < step:
+							if node == end:
+								finished = True
+								oldPath = path.copy()
+
+								path.clear()
+
+								temp = end
+								while temp != start:
+									path[temp] = oldPath[temp]
+									temp = path[temp]
+
+
+								return
+							else: steps -= 1
+
+
+
+					else: steps -= 1
+
+
+				steps += 1
+			
+			if steps < step:
+				currentNodeB = None
+	
+				steps += 1
+				if steps < step:
+	
+					visitedNodes.append(bfs_neighbours[i])
+	
+					i += 1
+					steps += 1
+
+	#currentNode = bfs_neighbours[i]
+	#for node in graph.connections[currentNode]:
+	#	if not node in visitedNodes:
+	#		bfs_neighbours.append(node)
+	#		n_neighbours += 1
+
+	#print(visitedNodes)
+	#print(bfs_neighbours)
 
 
 algorithmMode = 0
@@ -829,6 +890,10 @@ def draw():
 				if closestConnection[0] and (node == closestConnection[1] and link == closestConnection[2]) or (node == closestConnection[2] and link == closestConnection[1]):
 					col = col_darkyellow
 
+			if algorithmMode == 2 and finished == True:
+				if (node in path and path[node] == link) or (link in path and path[link] == node):
+					col = col_turquoise
+
 			pg.draw.line(mainSurface, col, node.get_pos(), link.get_pos(), 2)
 
 
@@ -868,10 +933,15 @@ def draw():
 			col = nodeCol
 			selected = False
 
-			if node == selectNode:
+			if node == currentNode and not finished:
 				selected = True
 				col = col_lime
 				pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize + 5)
+
+			if node == currentNodeB and not finished:
+				selected = True
+				col = col_orange
+				pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize + 4)
 
 			if node == algoEndNode:
 				selected = True
@@ -883,11 +953,11 @@ def draw():
 				col = selectedCol
 				pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize + 1)
 
-			if node in bfs_neighbours and not node in visitedNodes:
+			if node in bfs_neighbours and not node in visitedNodes and not finished:
 				col = col_darkyellow
 				if selected:
 					pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize)
-			elif node in visitedNodes:
+			elif node in visitedNodes and not finished:
 				col = col_red
 				if selected:
 					pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize)
