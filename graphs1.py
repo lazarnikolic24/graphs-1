@@ -93,8 +93,8 @@ class Graph:
 	def link(self, node1, node2):
 		if node1 != node2:
 			self.connections.setdefault(node1, [])
-			if not node2 in self.connections[node1]:
-				self.connections[node1].append(node2)
+			#if not node2 in self.connections[node1]:
+			#	self.connections[node1].append(node2)
 			self.connections.setdefault(node2, [])
 			if not node1 in self.connections[node2]:
 				self.connections[node2].append(node1)
@@ -120,7 +120,7 @@ class Graph:
 graph = Graph()
 node1 = graph.append(Node(screenX // 2, screenY // 2))
 node2 = graph.append(Node(screenX // 2, screenY // 2 + 100))
-graph.link(node1, node2)
+graph.link(node2, node1)
 
 def selectNode(x, y):
 	min_dist = screenX * screenY
@@ -453,7 +453,7 @@ class uiCheckbox(uiToggleButton):
 
 	
 def algorithmsClickEvent(self):
-	global algorithmMode
+	global algorithmMode, algoSearchFullGraph
 
 	if algorithmMode == 2:
 		if self.value:
@@ -462,11 +462,14 @@ def algorithmsClickEvent(self):
 		return
 
 	if self.value:
-		tempButton = uiButton(self.x, self.y + self.height + 8, 0, 0, 20, "BFS", 18, self, bfsClickEvent, self.colorB, True)
+		algoSearchFullGraph = False
+		tempButton = uiButton(screenX - 20, self.y + self.height + 8, 0, 0, 20, "BFS", 18, self, bfsClickEvent, self.colorB, False)
+		tempButton.fitToText(False, True)
 		self.children.append(tempButton)
 
-		tempButton = uiButton(self.x, tempButton.y + tempButton.height + 8, 0, 0, 20, "DFS", 18, self, None, self.colorB, True)
-		self.children.append(tempButton)
+		#tempButton = uiButton(screenX - 20, tempButton.y + tempButton.height + 8, 0, 0, 20, "DFS", 18, self, None, self.colorB, False)
+		#tempButton.fitToText(False, True)
+		#self.children.append(tempButton)
 	else:
 		self.clearChildren()
 
@@ -476,6 +479,7 @@ def algorithmsClickEvent(self):
 		selectedNodeB = None
 		algoStartNode = None
 		algoEndNode = None
+		algoSearchFullGraph = False
 
 def bfsClickEvent(self):
 	global algorithmMode
@@ -507,12 +511,8 @@ def bfsClickEvent(self):
 	
 		tempText2 = tempText
 	
-		tempCheckbox = uiCheckbox(tempText2.x + 4 + tempText2.width, tempText2.y, 20, "Full graph?", 15, tempPanel, None, col_white, col_darkgray)
+		tempCheckbox = uiCheckbox(tempText2.x + 4 + tempText2.width, tempText2.y, 20, "Full graph?", 15, tempPanel, searchClickEvent, col_white, col_darkgray)
 		tempPanel.children.append(tempCheckbox)
-
-		global algoSearchFullGraph
-
-		algoSearchFullGraph = tempCheckbox
 	
 		tempText = uiText(tempPanel.x + 4, tempText.y + tempText.height + 4, 0, 0, "End", 15, tempPanel, col_darkerpurp, True)
 		tempPanel.children.append(tempText)
@@ -562,13 +562,24 @@ def fieldClickEvent(self):
 		algoEndNode = None
 
 def startClickEvent(self):
-	global algorithmMode, algoSteps, algoStartNode, algoEndNode, finished
-	if algoStartNode != None and algoEndNode != None:
+	global algorithmMode, algoSteps, algoStartNode, algoEndNode
+	if algoStartNode != None and (algoEndNode != None or algoSearchFullGraph):
 		algorithmMode = 2
 		algoSteps = 0
 		self.parent.destroy()
 
 		tempButton =  uiManager.create(uiButton(100, 100, 0, 0, 20, "Step", 18, uiManager, stepClickEvent, col_darkpurp, True))
+
+def searchClickEvent(self):
+	global algoSearchFullGraph, algoFieldB, algoEndNode
+	if self.value:
+		algoSearchFullGraph = True
+		algoFieldB.text = ""
+		algoFieldB.color = col_gray
+		algoEndNode = None
+	else:
+		algoSearchFullGraph = False
+		algoFieldB.color = col_white
 
 def stepClickEvent(self):
 	global algoSteps, algoStartNode, algoEndNode, algorithmMode, finished
@@ -585,6 +596,7 @@ def stepClickEvent(self):
 		bfs(algoStartNode, algoEndNode, algoSteps)
 	
 		if finished:
+			self.y += self.height + 2
 			self.text = "Finish"
 			self.fitToText()
 
@@ -699,6 +711,10 @@ def bfs(start, end, step):
 	#print(visitedNodes)
 	#print(bfs_neighbours)
 
+	steps += 1
+	if steps < step:
+		finished = True
+
 
 algorithmMode = 0
 # 0 - not running
@@ -709,7 +725,7 @@ algorithm = ""
 
 algoStartNode = None
 algoEndNode = None
-algoSearchFullGraph = None
+algoSearchFullGraph = False
 
 algoSteps = 0
 
@@ -730,7 +746,7 @@ def recursiveClick(object, x, y):
 		clickConsumed = True
 
 def handleEvent(event):
-	global graph, selectedNodeA, selectedNodeB, dragging, algorithmMode
+	global graph, selectedNodeA, selectedNodeB, dragging, algorithmMode, algoSearchFullGraph
 
 	if event.type == pg.KEYDOWN:
 		if event.key == pg.K_ESCAPE:
@@ -749,11 +765,10 @@ def handleEvent(event):
 			if not clickConsumed:
 
 				if algorithmMode == 1:
-
 					selection = selectNode(event.pos[0], event.pos[1])
 					if selection[0]:
 
-						if algoStartNode == None:
+						if algoStartNode == None or algoSearchFullGraph:
 							algoStartNode = selection[1]
 
 							i = 0
@@ -880,6 +895,31 @@ def uiDraw():
 	global uiManager
 	recursiveDraw(uiManager)
 
+def drawArrow(surface, color, pos1, pos2, width):
+	seglen = 30
+
+	pg.draw.line(surface, color, pos1, pos2, width)
+	dx = pos1[0] - pos2[0]
+	dy = pos1[1] - pos2[1]
+	angle = math.atan2(dy, dx)
+
+	angle1 = angle - math.pi/4
+	dx1 = seglen * math.cos(angle1)
+	dy1 = seglen * math.sin(angle1)
+
+	x1 = pos2[0] + dx1
+	y1 = pos2[1] + dy1
+
+	angle2 = angle + math.pi/4
+	dx2 = seglen * math.cos(angle2)
+	dy2 = seglen * math.sin(angle2)
+
+	x2 = pos2[0] + dx2
+	y2 = pos2[1] + dy2
+
+	pg.draw.line(surface, color, pos2, (x1, y1), width)
+	pg.draw.line(surface, color, pos2, (x2, y2), width)
+
 def draw():
 	mainSurface.lock()
 
@@ -900,11 +940,11 @@ def draw():
 				if closestConnection[0] and (node == closestConnection[1] and link == closestConnection[2]) or (node == closestConnection[2] and link == closestConnection[1]):
 					col = col_darkyellow
 
-			if algorithmMode == 2 and finished == True:
+			if algorithmMode == 2 and finished == True and not algoSearchFullGraph:
 				if (node in path and path[node] == link) or (link in path and path[link] == node):
 					col = col_turquoise
 
-			pg.draw.line(mainSurface, col, node.get_pos(), link.get_pos(), 2)
+			drawArrow(mainSurface, col, node.get_pos(), link.get_pos(), 2)
 
 
 	if selectedNodeA != None and not dragging and algorithmMode == 0:
@@ -953,7 +993,7 @@ def draw():
 				col = col_orange
 				pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize + 4)
 
-			if node in path:
+			if node in path and not algoSearchFullGraph:
 				col = col_turquoise
 
 			if node == algoEndNode:
