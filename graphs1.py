@@ -611,13 +611,14 @@ tempButton.fitToText(False, True)
 # CODE/
 
 def algoReset():
-	global visitedNodes, bfs_neighbours, currentNode, currentNodeB, finished, path
+	global visitedNodes, bfs_neighbours, currentNode, currentNodeB, finished, path, finalPath
 	visitedNodes = []
 	bfs_neighbours = []
 	currentNode = None
 	currentNodeB = None
 	finished = None
 	path = {}
+	finalPath = {}
 
 visitedNodes = []
 
@@ -629,6 +630,7 @@ currentNodeB = None
 finished = False
 
 path = {}
+finalPath = {}
 
 def bfs(start, end, step):
 	global visitedNodes, bfs_neighbours, currentNode, currentNodeB, finished, path
@@ -642,6 +644,7 @@ def bfs(start, end, step):
 
 	finished = False
 	path = {}
+	finapPath = {}
 
 	n_neighbours = 1
 
@@ -669,7 +672,7 @@ def bfs(start, end, step):
 
 						steps += 1
 						if steps < step:
-							if node == end:
+							if node == end and not algoSearchFullGraph:
 								finished = True
 								oldPath = path.copy()
 
@@ -677,8 +680,8 @@ def bfs(start, end, step):
 
 								temp = end
 								while temp != start:
-									path[temp] = oldPath[temp]
-									temp = path[temp]
+									finalPath[temp] = oldPath[temp]
+									temp = finalPath[temp]
 
 
 								return
@@ -686,7 +689,14 @@ def bfs(start, end, step):
 
 
 
-					else: steps -= 1
+					else: 
+						steps -= 1
+						if node in visitedNodes:
+							temp = bfs_neighbours[i]
+							while temp != node:
+								finalPath[temp] = path[temp]
+								temp = path[temp]
+							finalPath[temp] = bfs_neighbours[i]
 
 
 				steps += 1
@@ -940,8 +950,8 @@ def draw():
 				if closestConnection[0] and (node == closestConnection[1] and link == closestConnection[2]) or (node == closestConnection[2] and link == closestConnection[1]):
 					col = col_darkyellow
 
-			if algorithmMode == 2 and finished == True and not algoSearchFullGraph:
-				if (node in path and path[node] == link) or (link in path and path[link] == node):
+			if algorithmMode == 2 and finished == True:
+				if (node in finalPath and finalPath[node] == link) or (link in finalPath and finalPath[link] == node):
 					col = col_turquoise
 
 			drawArrow(mainSurface, col, node.get_pos(), link.get_pos(), 2)
@@ -993,7 +1003,7 @@ def draw():
 				col = col_orange
 				pg.draw.circle(mainSurface, col, node.get_pos(), nodeSize + 4)
 
-			if node in path and not algoSearchFullGraph:
+			if node in finalPath and finished:
 				col = col_turquoise
 
 			if node == algoEndNode:
