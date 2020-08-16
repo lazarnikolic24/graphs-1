@@ -631,9 +631,10 @@ finished = False
 
 path = {}
 finalPath = {}
+cycles = []
 
 def bfs(start, end, step):
-	global visitedNodes, bfs_neighbours, currentNode, currentNodeB, finished, path
+	global visitedNodes, bfs_neighbours, currentNode, currentNodeB, finished, path, finalPath, cycles
 
 	visitedNodes = []
 
@@ -644,7 +645,8 @@ def bfs(start, end, step):
 
 	finished = False
 	path = {}
-	finapPath = {}
+	finalPath = {}
+	cycles = []
 
 	n_neighbours = 1
 
@@ -691,12 +693,12 @@ def bfs(start, end, step):
 
 					else: 
 						steps -= 1
-						if node in visitedNodes:
-							temp = bfs_neighbours[i]
-							while temp != node:
-								finalPath[temp] = path[temp]
-								temp = path[temp]
-							finalPath[temp] = bfs_neighbours[i]
+						#if node in visitedNodes:
+						#	temp = bfs_neighbours[i]
+						#	while temp != node:
+						#		finalPath[temp] = path[temp]
+						#		temp = path[temp]
+						#	finalPath[temp] = bfs_neighbours[i]
 
 
 				steps += 1
@@ -724,6 +726,62 @@ def bfs(start, end, step):
 	steps += 1
 	if steps < step:
 		finished = True
+		findLoops()
+
+
+def findLoops():
+	global visitedNodes, bfs_neighbours, currentNode, currentNodeB, finished, path, finalPath, cycles
+
+	brUlGr = {}
+	red = []
+	cycles = []
+
+	for node in graph.nodes:
+		brUlGr[node] = 0
+
+	for nodeA in graph.connections:
+		for nodeB in graph.connections[nodeA]:
+			brUlGr[nodeB] += 1
+
+	for node in brUlGr:
+		if brUlGr[node] == 0:
+			red.append(node)
+
+	i = 0
+	while i < len(red):
+		current = red[i]
+
+		for connectedNode in graph.connections[current]:
+			brUlGr[connectedNode] -= 1
+			if brUlGr[connectedNode] == 0:
+				red.append(connectedNode)
+
+		i += 1
+
+	if not len(red) == len(graph.nodes):
+		prethodni = {}
+
+		for node in graph.nodes:
+			prethodni[node] = -1
+
+		i = 0
+		for node in brUlGr:
+			if brUlGr[node] > 0:
+				temp = node
+				while prethodni[temp] == -1:
+					for nodeB in graph.nodes:
+						if temp in graph.connections[nodeB] and brUlGr[nodeB] > 0:
+							prethodni[temp] = nodeB
+							temp = nodeB
+				addLoop(temp, prethodni[temp], prethodni)
+				i += 1
+
+def addLoop(u, v, prethodni):
+	if u != v: addLoop(u, prethodni[v], prethodni)
+
+	global finalPath
+	finalPath[v] = prethodni[v]
+
 
 
 algorithmMode = 0
@@ -907,20 +965,21 @@ def uiDraw():
 
 def drawArrow(surface, color, pos1, pos2, width):
 	seglen = 30
+	dangle = math.pi/8
 
 	pg.draw.line(surface, color, pos1, pos2, width)
 	dx = pos1[0] - pos2[0]
 	dy = pos1[1] - pos2[1]
 	angle = math.atan2(dy, dx)
 
-	angle1 = angle - math.pi/4
+	angle1 = angle - dangle
 	dx1 = seglen * math.cos(angle1)
 	dy1 = seglen * math.sin(angle1)
 
 	x1 = pos2[0] + dx1
 	y1 = pos2[1] + dy1
 
-	angle2 = angle + math.pi/4
+	angle2 = angle + dangle
 	dx2 = seglen * math.cos(angle2)
 	dy2 = seglen * math.sin(angle2)
 
