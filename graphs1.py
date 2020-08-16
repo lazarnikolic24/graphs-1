@@ -657,7 +657,10 @@ def bfs(start, end, step):
 
 		steps += 1
 		if steps < step:
-
+			if not currentNode in graph.connections:
+				finished = True
+				findLoops()
+				return
 			for node in graph.connections[currentNode]:
 				if steps >= step: break
 
@@ -751,10 +754,11 @@ def findLoops():
 	while i < len(red):
 		current = red[i]
 
-		for connectedNode in graph.connections[current]:
-			brUlGr[connectedNode] -= 1
-			if brUlGr[connectedNode] == 0:
-				red.append(connectedNode)
+		if current in graph.connections:
+			for connectedNode in graph.connections[current]:
+				brUlGr[connectedNode] -= 1
+				if brUlGr[connectedNode] == 0:
+					red.append(connectedNode)
 
 		i += 1
 
@@ -770,13 +774,17 @@ def findLoops():
 				temp = node
 				while prethodni[temp] == -1:
 					for nodeB in graph.nodes:
-						if temp in graph.connections[nodeB] and brUlGr[nodeB] > 0:
-							prethodni[temp] = nodeB
-							temp = nodeB
+						if nodeB in graph.connections:
+							if temp in graph.connections[nodeB] and brUlGr[nodeB] > 0:
+								prethodni[temp] = nodeB
+								temp = nodeB
+								brUlGr[nodeB] -= 1
+				print("---")
 				addLoop(temp, prethodni[temp], prethodni)
 				i += 1
 
 def addLoop(u, v, prethodni):
+	print(u, v)
 	if u != v: addLoop(u, prethodni[v], prethodni)
 
 	global finalPath
