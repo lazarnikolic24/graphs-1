@@ -470,6 +470,10 @@ def algorithmsClickEvent(self):
 		#tempButton = uiButton(screenX - 20, tempButton.y + tempButton.height + 8, 0, 0, 20, "DFS", 18, self, None, self.colorB, False)
 		#tempButton.fitToText(False, True)
 		#self.children.append(tempButton)
+
+		tempButton = uiButton(screenX - 20, tempButton.y + tempButton.height + 8, 0, 0, 20, "Find loop", 18, self, findLoopClickEvent, self.colorB, False)
+		tempButton.fitToText(False, True)
+		self.children.append(tempButton)
 	else:
 		self.clearChildren()
 
@@ -480,6 +484,19 @@ def algorithmsClickEvent(self):
 		algoStartNode = None
 		algoEndNode = None
 		algoSearchFullGraph = False
+
+def findLoopClickEvent(self):
+	global algorithmMode, finished
+
+	if algorithmMode == 2: return
+
+	if algorithmMode == 0:
+		algorithmMode = 2
+		finished = True
+	
+		findLoops()
+	
+		tempButton =  uiManager.create(uiButton(100, 100, 0, 0, 20, "Finish", 18, uiManager, stepClickEvent, col_darkpurp, True))
 
 def bfsClickEvent(self):
 	global algorithmMode
@@ -659,7 +676,7 @@ def bfs(start, end, step):
 		if steps < step:
 			if not currentNode in graph.connections:
 				finished = True
-				findLoops()
+				#findLoops()
 				return
 			for node in graph.connections[currentNode]:
 				if steps >= step: break
@@ -729,7 +746,7 @@ def bfs(start, end, step):
 	steps += 1
 	if steps < step:
 		finished = True
-		findLoops()
+		#findLoops()
 
 
 def findLoops():
