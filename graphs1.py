@@ -738,6 +738,7 @@ def findLoops():
 	brUlGr = {}
 	red = []
 	cycles = []
+	marked = []
 
 	for node in graph.nodes:
 		brUlGr[node] = 0
@@ -780,12 +781,20 @@ def findLoops():
 								temp = nodeB
 								brUlGr[nodeB] -= 1
 				print("---")
-				addLoop(temp, prethodni[temp], prethodni)
+				addLoop(temp, prethodni[temp], prethodni, marked)
 				i += 1
 
-def addLoop(u, v, prethodni):
+def addLoop(u, v, prethodni, marked):
 	print(u, v)
-	if u != v: addLoop(u, prethodni[v], prethodni)
+
+	#if v in marked:
+	#	return
+
+	#marked.append(v)
+
+	if u != v: addLoop(u, prethodni[v], prethodni, marked)
+
+	#marked.remove(v)
 
 	global finalPath
 	finalPath[v] = prethodni[v]
