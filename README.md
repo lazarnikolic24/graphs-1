@@ -13,9 +13,11 @@ Kreiranje grafova:
 	* Pomera tacke
 
 ## Algoritmi
-Trenutno je na mestu samo BFS pretraga. Radi u dva moda, u zavisnosti od toga da li cekirate "Search full graph" ili ne.
-1. Search full graph **nije** cekiran:
+Trenutno je na mestu samo BFS pretraga. Radi u dva moda, u zavisnosti od toga da li čekirate "Search full graph" ili ne.
+1. Search full graph **nije** čekiran:
 	- Algoritam ce pronaci najkraci put od polazne tacke do cilja
-2. Search full graph **jeste** cekiran:
-	- Cilj se ne moze postaviti, samo polazna tacka. Algoritam ce pretraziti ceo graf, a zatim ce oznaciti pronadjene petlje. **NIJE STABILNO**
+2. Search full graph **jeste** čekiran:
+	- Cilj se ne moze postaviti, samo polazna tacka.
+	
+Takođe postoji eksperimentalno "Find loops" dugme koje traži i označava cikluse u grafu. **NIJE STABILNO**
 
