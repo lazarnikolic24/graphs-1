@@ -750,7 +750,7 @@ def bfs(start, end, step):
 
 
 def findLoops():
-	global visitedNodes, bfs_neighbours, currentNode, currentNodeB, finished, path, finalPath, cycles
+	global visitedNodes, bfs_neighbours, currentNode, currentNodeB, finished, path, finalPath, cycles, marked
 
 	brUlGr = {}
 	red = []
@@ -798,20 +798,25 @@ def findLoops():
 								temp = nodeB
 								brUlGr[nodeB] -= 1
 				print("---")
-				addLoop(temp, prethodni[temp], prethodni, marked)
+				marked = []
+				addLoop(temp, prethodni[temp], prethodni)
 				i += 1
 
-def addLoop(u, v, prethodni, marked):
+marked = []
+
+def addLoop(u, v, prethodni):
+	global marked
+
 	print(u, v)
 
-	#if v in marked:
-	#	return
+	if v in marked:
+		return
 
-	#marked.append(v)
+	marked.append(v)
 
-	if u != v: addLoop(u, prethodni[v], prethodni, marked)
+	if u != v: addLoop(u, prethodni[v], prethodni)
 
-	#marked.remove(v)
+	marked.remove(v)
 
 	global finalPath
 	finalPath[v] = prethodni[v]
